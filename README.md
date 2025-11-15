@@ -1,6 +1,5 @@
 <div align="center">
     <img src="desktop_app\assets\icons\stockadoodle-transparent.png" alt="Stockadoodle Logo" width="150">
-    
     <h1> Stockadoodle - Inventory Management System </h1>
 </div>
 
