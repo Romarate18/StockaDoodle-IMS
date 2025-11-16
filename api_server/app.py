@@ -1,47 +1,48 @@
 import os
-
 from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from extensions import db, migrate
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
-
-db = SQLAlchemy()
-migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
     
-    # Config
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'stockadoodle-flask-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv ('DATABASE_URL', 'sqlite:///stockadoodle.db')
-    
-    # Import and register models here
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'stockadoodle-dev-2025')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stockadoodle.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # ← CRITICAL: These two lines MUST be here!
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Import models AFTER init_app
     with app.app_context():
         from models import category, product
         db.create_all()
-        
-    # Register routes here
-    from routes.products import bp as product_bp
+
+        # Seed default category
+        from models.category import Category
+        if Category.query.count() == 0:
+            db.session.add(Category(name="General"))
+            db.session.commit()
+
+    # Register blueprint
+    from routes.products import bp as products_bp
     app.register_blueprint(products_bp, url_prefix='/api/v1/products')
-    
-    @app.route('/')
-    def index():
+
+    @app.route('/api/v1')
+    def home():
         return jsonify({
-            "message": "Stockadoodle API",
-            "database": "stockadoodle.db",
-            "status": "running"
+            "message": "StockaDoodle API LIVE!",
+            "status": "Production Ready",
+            "database": "stockadoodle.db"
         })
-        
-    @app.route('/health')
+
+    @app.route('/api/v1/health')
     def health():
-        return jsonify ({
-            "status": "healthy",
-            "db": "stockadoodle.db"
-        }), 200
-        
+        return jsonify({"status": "healthy"}), 200
+
     return app
 
 if __name__ == '__main__':

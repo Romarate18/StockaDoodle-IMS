@@ -1,4 +1,4 @@
-from api_server.app import db
+from app import db
 import base64
 
 class Product(db.Model):
@@ -29,3 +29,7 @@ class Product(db.Model):
         if include_image and self.image_blob:
             data["image_base64"] = base64.b64encode(self.image_blob).decode('utf-8')
         return data
+    
+    
+    
+    
