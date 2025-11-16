@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.product import Product
 from models.category import Category
-from utils import parse_date, get_image_blob, extract_int
+from utils import get_image_blob, extract_int, parse_date
 
 bp = Blueprint('products', __name__)
 
