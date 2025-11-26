@@ -1,5 +1,3 @@
-# api_server/core/inventory_manager.py
-
 from extensions import db
 from models.product import Product
 from models.stock_batch import StockBatch
