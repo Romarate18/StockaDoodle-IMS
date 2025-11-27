@@ -207,6 +207,14 @@ def create_product():
         db.session.commit()
         include_batches=True
 
+    user_id = extract_int(data.get('added_by')) or API_USER_ID
+    ActivityLogger.log_api_activity(
+        method='POST',
+        target_entity='product',
+        user_id=user_id,
+        details=f"Created product '{product.name}' (id={product.id})"
+    )
+    
     return jsonify(product.to_dict(include_image=True, include_batches=include_batches)), 201
 
 
@@ -230,18 +238,27 @@ def add_stock_batch(product_id):
         return jsonify({"error": "Expiration date is required (YYYY-MM-DD)"}), 400
 
     added_by = extract_int(data.get('added_by')) or API_USER_ID     # default to API user
+    reason = data.get("reason") or "Stock added"
     
     batch = StockBatch(
         product_id=product.id,
         quantity=quantity,
         expiration_date=expiration_date,
         added_at=datetime.now(timezone.utc),
-        added_by=added_by
+        added_by=added_by,
+        reason=reason
     )
 
     db.session.add(batch)
     db.session.commit()
 
+    ActivityLogger.log_api_activity(
+        method='POST',
+        target_entity='stock_batch',
+        user_id=added_by,
+        details=f"Added stock batch: product_id={product.id}, qty={quantity}, exp={expiration_date}"
+    )
+    
     return jsonify({
         "message": "Stock batch added",
         "product_id": product.id,
@@ -441,7 +458,7 @@ def remove_stock_batch(product_id, batch_id):
 #   added_by: Integer (optional)
 #   reason: String (optional)
 # ----------------------------------------------------------------------
-@bp.route('/<int:product_id>/stock_batches/<int:batch_id>', methods=['PATCH'])
+@bp.route('/<int:product_id>/stock_batches/<int:batch_id>/metadata', methods=['PATCH'])
 def update_stock_batch_metadata(product_id, batch_id):
     batch = StockBatch.query.filter_by(id=batch_id, product_id=product_id).first_or_404()
     data = request.get_json() or {}
@@ -496,6 +513,16 @@ def delete_stock_batch(product_id, batch_id):
 
     db.session.delete(batch)
     db.session.commit()
+    
+    data = request.get_json(silent=True) or {}
+    user_id = extract_int(data.get('user_id')) or API_USER_ID
+
+    ActivityLogger.log_api_activity(
+        method='DELETE',
+        target_entity='stock_batch',
+        user_id=user_id,
+        details=f"Deleted stock batch id={batch_id} for product_id={product_id}"
+    )
 
     return jsonify({
         "message": f"Batch {batch_id} of {product.name} deleted successfully",
