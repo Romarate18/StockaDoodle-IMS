@@ -220,16 +220,15 @@ class SalesManager:
         query = Sale.objects()
         
         if start_date:
-            query = query.filter(Sale.created_at >= start_date)
+            query = query.filter(created_at__gte = start_date)
         if end_date:
-            query = query.filter(Sale.created_at <= end_date)
+            query = query.filter(created_at__lte = end_date)
         if retailer_id:
-            query = query.filter_by(retailer=retailer_id)
+            query = query.filter(retailer=retailer_id)
 
         sales = query.order_by('-created_at')
         
         total_revenue = sum(s.total_amount for s in sales)
-        total_transactions = len(sales)
         
         # Calculate total items sold
         total_items = 0

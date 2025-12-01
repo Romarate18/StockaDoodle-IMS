@@ -72,7 +72,7 @@ class ActivityLogger:
             list: List of ProductLog entries
         """
         return (
-            ProductLog.objects(product_id=product_id)
+            ProductLog.objects(product=product_id)
             .order_by('-log_time')
             .limit(limit)
         )
@@ -90,7 +90,7 @@ class ActivityLogger:
             list: List of ProductLog entries
         """
         return (
-            ProductLog.objects(user_id=user_id)
+            ProductLog.objects(user=user_id)
             .order_by('-log_time')
             .limit(limit)
         )
@@ -110,7 +110,7 @@ class ActivityLogger:
         query = ProductLog.objects()
         
         if action_type:
-            query = query.filter_by(action_type=action_type)
+            query = query.filter(action_type=action_type)
             
         return query.order_by('-log_time').limit(limit)
 
