@@ -22,8 +22,8 @@ def sales_performance_report():
         start = request.args.get('start_date')
         end = request.args.get('end_date')
         
-        start_date = datetime.strptime(start, '%Y-%m-%d').date() if start else None
-        end_date = datetime.strptime(end, '%Y-%m-%d').date() if end else None
+        start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end, '%Y-%m-%d').date()
         
         report = ReportGenerator.sales_performance_report(start_date, end_date)
         return jsonify(report), 200

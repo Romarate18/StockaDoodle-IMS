@@ -26,8 +26,5 @@ class Config:
     MFA_CODE_LENGTH = int(os.getenv('MFA_CODE_LENGTH', 6))
     MFA_CODE_EXPIRY_MINUTES = int(os.getenv('MFA_CODE_EXPIRY_MINUTES', 5))
     
-    # Manager email for alerts
-    MANAGER_EMAIL = os.getenv('MANAGER_EMAIL', 'gerfeljay@gmail.com')
-    
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     TESTING = os.getenv('TESTING', 'False').lower() == 'true'

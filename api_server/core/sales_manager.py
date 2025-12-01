@@ -40,7 +40,7 @@ class SalesManager:
         try:
             # Phase 1: Validate all items first (prevents partial deductions)
             for item in items:
-                product = Product.objects(id=item['product_id']).first()
+                product = Product.objects(id=int(item['product_id'])).first()
                 if not product:
                     raise SalesError(f"Product ID {item['product_id']} not found")
                 
@@ -59,7 +59,6 @@ class SalesManager:
                 total_amount=total_amount,
                 created_at=datetime.now(timezone.utc)
             )
-            sale.save()
 
             # Phase 4: Create sale items
             for item in items:
@@ -69,16 +68,15 @@ class SalesManager:
                     line_total=item['line_total']
                 )
                 sale.items.append(sale_item)
-            
-            sale.save()
 
             # Phase 5: Update retailer metrics
+            sale.save()
             SalesManager._update_retailer_metrics(retailer_id, total_amount)
 
             # Phase 6: Log the transaction
             product_names = []
             for item in items:
-                product = Product.objects(id=item['product_id']).first()
+                product = Product.objects(id=int(item['product_id'])).first()
                 if product:
                     product_names.append(product.name)
 
@@ -105,12 +103,20 @@ class SalesManager:
             retailer_id (int): Retailer ID
             sale_amount (float): Amount of the sale
         """
-        metrics = RetailerMetrics.objects(retailer=retailer_id).first()
+        from models.retailer_metrics import RetailerMetrics  
+        from models.user import User  
+        from datetime import date  
+        
+        user = User.objects(id=retailer_id).first()
+        if not user:  
+            return
+        
+        metrics = RetailerMetrics.objects(retailer=user).first()
         
         if not metrics:
             # Create new metrics record
             metrics = RetailerMetrics(
-                retailer=retailer_id,
+                retailer=user,
                 daily_quota=1000.0,  # Default quota
                 sales_today=0.0,
                 total_sales=0.0,
@@ -308,15 +314,18 @@ class SalesManager:
         """
         from models.user import User
         
+        # Get all valid User IDs first  
+        valid_user_ids = [user.id for user in User.objects()]
+        
         top_metrics = (
-            RetailerMetrics.objects()
+            RetailerMetrics.objects(retailer__in=valid_user_ids)
             .order_by('-current_streak', '-total_sales')
             .limit(limit)
         )
 
         leaderboard = []
         for idx, metrics in enumerate(top_metrics, 1):
-            user = User.objects(id=metrics.retailer).first()
+            user = metrics.retailer
             leaderboard.append({
                 'rank': idx,
                 'retailer_id': metrics.retailer.id if metrics.retailer else None,

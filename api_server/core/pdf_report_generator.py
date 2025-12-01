@@ -151,7 +151,7 @@ class PDFReportGenerator:
         self._add_professional_header(elements)
         
         # Date range
-        date_range = f"Report Period: {report_data['date_range']['start']} to {report_data['date_range']['end']}"
+        date_range = f"{report_data['date_range']['start']} to {report_data['date_range']['end']}"
         
          # Report title
         self._add_report_title(elements, "Sales Performance Report", f"Report Period: {date_range}")
@@ -410,7 +410,66 @@ class PDFReportGenerator:
     # ================================================================
     def generate_transactions_report(self, report_data):
         """Generate Report 6: Detailed Sales Transaction Report (same as Report 1)"""
-        return self.generate_sales_performance_report(report_data)
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.75*inch)
+        elements = []
+        
+        # Header
+        self._add_professional_header(elements)
+
+        # Report title
+        self._add_report_title(elements, "Sales Performance Report")
+
+        # Summary
+        summary_text = {
+            'Total Revenue': f"${report_data['summary']['total_revenue']:,.2f}",  # Corrected key from 'total_income' to 'total_revenue'
+            'Total Transactions': f"{report_data['summary']['total_transactions']:,}",
+            'Total Sales Count': f"{report_data['summary']['total_sales_count']:,}",
+            'Total Items Sold': f"{report_data['summary']['total_items_sold']:,}"
+        }
+        elements.append(Paragraph("Summary", self.styles['section']))
+        elements.append(self._create_summary_box(summary_text))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
+
+        # Date range (if available)
+        start_date = report_data['date_range']['start']
+        end_date = report_data['date_range']['end']
+        date_range = f"{start_date} to {end_date}" if start_date and end_date else 'Not Specified'
+
+        elements.append(Paragraph(f"Report Period: {date_range}", self.styles['section']))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
+
+        # Sales Breakdown table
+        elements.append(Paragraph("Sales Breakdown", self.styles['section']))
+        sales_data = [['Sale ID', 'Product', 'Brand', 'Quantity Sold', 'Unit Price', 'Line Total', 'Retailer']]
+
+        # Add sales data to the table
+        for transaction in report_data['transactions']:
+            sales_data.append([
+                str(transaction['sale_id']),
+                transaction['product_name'],
+                transaction['product_brand'],
+                str(transaction['quantity_sold']),
+                f"${transaction['unit_price']:.2f}",
+                f"${transaction['line_total']:.2f}",
+                transaction['retailer_name']
+            ])
+        
+        # Create the sales table
+        sales_table = self._create_data_table(
+            sales_data,
+            col_widths=[0.8*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch, 1.5*inch]
+        )
+        elements.append(sales_table)
+
+        # Footer
+        self._add_professional_footer(elements)
+
+        # Build the PDF document
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer
+            
     
     # ================================================================
     # REPORT 7: User Accounts Report

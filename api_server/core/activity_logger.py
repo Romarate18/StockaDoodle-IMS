@@ -27,6 +27,7 @@ class ActivityLogger:
             product_id=product_id,
             user=user_id,
             action_type=action_type,
+            quantity=quantity,
             notes=f"Quantity: {quantity}. {notes}" if quantity else notes,
             log_time=datetime.now(timezone.utc)
         )

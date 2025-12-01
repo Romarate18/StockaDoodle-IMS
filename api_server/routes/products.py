@@ -120,22 +120,21 @@ def get_product(id):
 # ----------------------------------------------------------------------
 @bp.route('/<int:product_id>/stock_batches', methods=['GET'])
 def list_stock_batches(product_id):
-    category = Category.objects(id=product.category_id).first() if product.category_id else None
-    batches = [batch.to_dict() for batch in StockBatch.objects(product=product)]
-    
     try:
-        product = Product.objects.get(id=product_id).first()
-
-        return jsonify({
-            "product_id": product.id,
-            "product_name": product.name,
-            "product_category": category.name if category else "Uncategorized",
-            "stock_batches": batches,
-            "total_stock": product.stock_level
-        })
-        
+        product = Product.objects.get(id=product_id)
     except DoesNotExist:
         return jsonify({"errors": ["Product not found"]}), 404
+    
+    category = Category.objects(id=product.category_id).first() if product.category_id else None
+    batches = [batch.to_dict() for batch in StockBatch.objects(product_id=product.id)]
+    
+    return jsonify({
+        "product_id": product.id,
+        "product_name": product.name,
+        "product_category": category.name if category else "Uncategorized",
+        "stock_batches": batches,
+        "total_stock": product.stock_level
+    })
 
 
 # ----------------------------------------------------------------------
@@ -193,7 +192,7 @@ def create_product():
     include_batches = False
     if initial_stock > 0:
         batch = StockBatch (
-            product = product,
+            product_id = product.id,
             quantity = initial_stock,
             expiration_date = parse_date(data.get('expiration_date')),
             added_at = datetime.now(timezone.utc),
@@ -335,7 +334,7 @@ def replace_product(product_id):
     new_stock = extract_int(data.get('stock_level'))
     if new_stock is not None and new_stock > 0:
         batch = StockBatch(
-            product = product,
+            product_id = product.id,
             quantity = new_stock, 
             expiration_date = parse_date(data.get('expiration_date')),
             added_at = datetime.now(timezone.utc),
@@ -425,7 +424,7 @@ def patch_product(product_id):
         qty = extract_int(data['stock_level'])
         if qty is not None and qty > 0:
             batch = StockBatch(
-                product = product,
+                product_id = product.id,
                 quantity = qty, 
                 expiration_date = parse_date(data.get('expiration_date')),
                 added_at = datetime.now(timezone.utc),
@@ -474,12 +473,12 @@ def patch_product(product_id):
 @bp.route('/<int:product_id>/stock_batches/<int:batch_id>', methods=['PATCH'])
 def remove_stock_batch(product_id, batch_id):
     try:
-        product = Product.objects.get(id=product_id).first()
+        product = Product.objects.get(id=product_id)
     except DoesNotExist:
         return jsonify({"errors": "Product not found"}), 404
     
     try:
-        batch = StockBatch.objects.get(id=batch_id, product=product_id).first()
+        batch = StockBatch.objects.get(id=batch_id, product_id=product_id)
     except DoesNotExist:
         return jsonify({"errors": "Stock Batches not found"}), 404
 
@@ -495,6 +494,14 @@ def remove_stock_batch(product_id, batch_id):
     batch.quantity -= remove_qty
     batch.reason = reason
     batch.save()
+    
+    # Log activity
+    ActivityLogger.log_api_activity(
+        method='PATCH',
+        target_entity='stock_batch',  # We're modifying a stock batch
+        user_id=data.get('added_by') or API_USER_ID,
+        details=f"Removed {remove_qty} units from batch {batch.id} of product {product.id}. Reason: {reason}"
+    )
     
     ActivityLogger.log_product_action(
         product_id=product.id,
@@ -570,10 +577,10 @@ def delete_product(id):
     data = request.get_json(silent=True) or {}
     user_id = data.get('user_id') or API_USER_ID
     try:
-        product = Product.objects.get(id=id).first()
+        product = Product.objects.get(id=id)
         
     except DoesNotExist:
-        return jsonify({"errors":["Product not found"]})
+        return jsonify({"errors":["Product not found"]}), 404
         
     name = product.name
     product.delete()
@@ -602,14 +609,14 @@ def delete_product(id):
 def delete_stock_batch(product_id, batch_id):
    
     try:
-        product = Product.objects.get(id=id).first()
+        product = Product.objects.get(id=product_id)
     except DoesNotExist:
-        return jsonify({"errors":["Product not found"]})
+        return jsonify({"errors":["Product not found"]}), 404
     
     try:
-        batch = StockBatch.objects.gets(id=batch_id, product=product_id)
+        batch = StockBatch.objects.get(id=batch_id, product_id=product_id)
     except DoesNotExist:
-        return jsonify({"errors": ["Stock Batches not found"]})
+        return jsonify({"errors": ["Stock Batches not found"]}), 404
 
     batch.delete()
     

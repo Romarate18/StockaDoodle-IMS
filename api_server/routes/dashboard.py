@@ -61,7 +61,7 @@ def manager_dashboard():
             'recent_logs': [log.to_dict() for log in recent_logs],
             'low_stock_products': [
                 {
-                    'id': p.product_id,
+                    'id': p.id,
                     'name': p.name,
                     'current_stock': p.stock_level,
                     'min_stock_level': p.min_stock_level

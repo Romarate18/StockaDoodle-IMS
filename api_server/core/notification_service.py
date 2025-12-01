@@ -148,7 +148,7 @@ StockaDoodle Alert System
         from models.product import Product
         products_expiring = {}
         for batch in expiring_batches:
-            product = Product.objects(id=batch.product.id if hasattr(batch.product, 'id') else batch.product).first()
+            product = Product.objects(id=batch.product.id).first()
             if product:
                 if product.name not in products_expiring:
                     products_expiring[product.name] = []

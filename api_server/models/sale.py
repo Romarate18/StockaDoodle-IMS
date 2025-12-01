@@ -5,12 +5,17 @@ from mongoengine import (
     DateTimeField,
     EmbeddedDocument,
     EmbeddedDocumentField,
-    ListField
+    ListField,
+    ReferenceField
 )
+from models.product import Product
 from datetime import datetime, timezone
 
+
 class SaleItem(EmbeddedDocument):
-    __tablename__ = "sale_items"
+    
+    sale = ReferenceField('Sale')  
+
     product_id = IntField(required=True)
 
     # how many of that item
@@ -37,7 +42,7 @@ class Sale(BaseDocument):
     retailer_id = IntField(required=True)
     
     # when the sale happened
-    created_at = DateTimeField(default=lambda: datetime.now(timezone.utcnow))
+    created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
     
     # full sale amount
     total_amount = FloatField(default=0.0)

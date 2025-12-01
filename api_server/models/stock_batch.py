@@ -11,7 +11,7 @@ class StockBatch(BaseDocument):
         }
 
     # product this batch belongs to
-    product = ReferenceField(Product)
+    product_id  = IntField(required=True)
 
     # how many items inside this batch
     quantity = IntField(required=True, default=0)
@@ -31,7 +31,7 @@ class StockBatch(BaseDocument):
     def to_dict(self):
         return {
             "id": self.id,
-            "product_id": self.product_id if self.product else None,
+            "product_id": self.product_id,
             "quantity": self.quantity,
             "expiration_date": self.expiration_date.isoformat() if self.expiration_date else None,
             "added_at": self.added_at.isoformat() if self.added_at else None,

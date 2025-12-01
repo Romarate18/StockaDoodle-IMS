@@ -28,7 +28,7 @@ def create_app():
     
     # Register blueprint
     from routes.logs import bp as logs_bp
-    app.register_blueprint(logs_bp, url_prefix='/api/v1/logs')
+    app.register_blueprint(logs_bp, url_prefix='/api/v1/log')
     
     # Register blueprint
     from routes.sales import bp as sales_bp

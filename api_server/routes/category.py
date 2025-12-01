@@ -30,11 +30,13 @@ def get_category(cat_id):
     """Get single category by ID"""
     include_image = request.args.get('include_image' , 'false').lower() == 'true'
 
-    try: 
-        category = Category.objects.get(id=cat_id)
-        return jsonify(category.to_dict(include_image=include_image)), 200
-    except DoesNotExist:
+
+    category = Category.objects.get(id=cat_id)
+    if not category:
         return jsonify({"errors": ["Category not found"]}), 404
+    
+    return jsonify(category.to_dict(include_image=include_image)), 200
+
 
 
 # ----------------------------------------------------------------------
@@ -97,9 +99,8 @@ def create_category():
 @bp.route('/<int:cat_id>', methods=['PUT'])
 def replace_category(cat_id):
     """Replace entire category"""
-    try:
-        category = Category.objects.get(id=cat_id)
-    except DoesNotExist:
+    category = Category.objects.get(id=cat_id)
+    if not category:
         return jsonify({"errors": ["Category not found"]}), 404
     
     is_form = request.content_type and 'multipart/form-data' in request.content_type
@@ -155,9 +156,8 @@ def replace_category(cat_id):
 @bp.route('/<int:cat_id>', methods=['PATCH'])
 def update_category(cat_id):
     """Partially update category"""
-    try:
-        category = Category.objects.get(id=cat_id)
-    except DoesNotExist:
+    category = Category.objects.get(id=cat_id)
+    if not category:
         return jsonify ({"errors": ['Category not found']}), 404
     
     is_form = request.content_type and 'multipart/form-data' in request.content_type
@@ -218,9 +218,8 @@ def delete_category(cat_id):
     """Delete category (only if no products linked)"""
     data = request.get_json(silent=True) or {}
 
-    try: 
-        category = Category.objects.get(id=cat_id)
-    except DoesNotExist:
+    category = Category.objects.get(id=cat_id)
+    if not category:
         return jsonify ({"errors": ["Category not found"]}), 404
     
     user_id = data.get("user_id")

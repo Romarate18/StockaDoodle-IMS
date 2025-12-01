@@ -28,25 +28,32 @@ class ReportGenerator:
         Returns:
             dict: Report data with sales breakdown and summary
         """
+        sales = Sale.objects()  
+        
+        # If no start_date provided, fetch the first sale date
         if not start_date:
-            start_date = date.today() - timedelta(days=30)
+            first_sale = sales.order_by('created_at').first()
+            start_date = first_sale.created_at.date() if first_sale else None
+
+        # If no end_date provided, fetch the last sale date
         if not end_date:
-            end_date = date.today()
-            
-        # Convert to datetime for MongoDB query
-        start_datetime = datetime.combine(start_date, datetime.min.time())
-        end_datetime = datetime.combine(end_date, datetime.max.time())
+            last_sale = sales.order_by('-created_at').first()
+            end_date = last_sale.created_at.date() if last_sale else None
+
+        if start_date:
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            sales = sales.filter(created_at__gte=start_datetime) 
+        if end_date:
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            sales = sales.filter(created_at__lte=end_datetime) 
         
         # Query sales
-        sales = Sale.objects(
-            created_at__gte=start_datetime,
-            created_at__lte=end_datetime
-        ).order_by('-created_at')
+        sales = sales.order_by('-created_at')
 
         results = []
         for sale in sales:
             retailer = User.objects(id=sale.retailer_id).first()
-            items = SaleItem.objects(sale=sale.id)
+            items = sale.items
             
             for item in items:
                 product = Product.objects(id=item.product_id).first()
@@ -68,8 +75,8 @@ class ReportGenerator:
             'report_id': 1,
             'report_name': 'Sales Performance Report',
             'date_range': {
-                'start': start_date.isoformat(),
-                'end': end_date.isoformat()
+                'start': start_date.isoformat() if start_date else None,
+                'end': end_date.isoformat() if end_date else None 
             },
             'sales': results,
             'summary': {
@@ -196,7 +203,7 @@ class ReportGenerator:
 
             # Expiration check
             expiring_batches = StockBatch.objects(
-                product=product,
+                product_id=product.id,
                 expiration_date__lte=cutoff_date,
                 expiration_date__ne=None,
                 quantity__gt=0
@@ -264,9 +271,13 @@ class ReportGenerator:
         unique_managers = set()
         
         for log in all_logs:
-            user = User.objects(id=log.user).first()
+            if hasattr(log.user, 'id'):  
+                user_id = log.user.id  
+            else:  
+                user_id = log.user  
+            user = User.objects(id=user_id).first()
             if user and user.role in ['admin', 'manager']:
-                product = Product.objects(id=log.product).first()
+                product = Product.objects(id=log.product_id).first()
                 results.append({
                     'log_id': log.id,
                     'product_name': product.name if product else 'Unknown',
@@ -307,8 +318,62 @@ class ReportGenerator:
         Returns:
             dict: Detailed transaction list
         """
-        # This is similar to Report 1 but more granular
-        return ReportGenerator.sales_performance_report(start_date, end_date)
+        
+        sales = Sale.objects()  
+      
+        sales = Sale.objects()  
+      
+        if start_date:  
+            sales = sales.filter(created_at__gte=start_date)  
+        if end_date:  
+            sales = sales.filter(created_at__lte=end_date)  
+      
+        transactions = []  
+        total_revenue = 0.0  
+        total_items = 0  
+        
+        for sale in sales:  
+            retailer = User.objects(id=sale.retailer_id).first()  
+            
+            # Process each embedded item as a separate transaction line  
+            for item in sale.items:  
+                product = Product.objects(id=item.product_id).first()  
+                
+                # Calculate unit price from line total and quantity  
+                unit_price = item.line_total / item.quantity if item.quantity > 0 else 0  
+                
+                transaction_data = {  
+                    'sale_id': sale.id,  
+                    'transaction_time': sale.created_at.strftime('%Y-%m-%d %H:%M:%S'),  
+                    'product_id': item.product_id,  
+                    'product_name': product.name if product else 'Unknown Product',  
+                    'product_brand': product.brand if product else '',  
+                    'quantity_sold': item.quantity,  
+                    'unit_price': round(unit_price, 2),  
+                    'line_total': item.line_total,  
+                    'retailer_id': sale.retailer_id,  
+                    'retailer_name': retailer.full_name if retailer else 'Unknown'  
+                }  
+                
+                transactions.append(transaction_data)  
+                total_revenue += item.line_total  
+                total_items += item.quantity  
+      
+        return {  
+            'report_id': 6,  
+            'report_name': 'Detailed Sales Transaction Report',  
+            'date_range': {  
+                'start': start_date.isoformat() if start_date else None,  
+                'end': end_date.isoformat() if end_date else None  
+            },  
+            'summary': {  
+                'total_transactions': len(transactions),  
+                'total_sales_count': len(set(t['sale_id'] for t in transactions)),  
+                'total_revenue': round(total_revenue, 2),  
+                'total_items_sold': total_items  
+            },  
+            'transactions': transactions  
+        }
 
     @staticmethod
     def user_accounts_report():
