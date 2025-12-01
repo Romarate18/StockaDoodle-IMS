@@ -219,7 +219,7 @@ class PDFReportGenerator:
         }
         elements.append(Paragraph("Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
         
         # Category table
         elements.append(Paragraph("Category Breakdown", self.styles['section']))
@@ -269,7 +269,7 @@ class PDFReportGenerator:
         
         elements.append(Paragraph("Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
         
         # Retailer table
         elements.append(Paragraph("Performance Metrics", self.styles['section']))
@@ -321,7 +321,7 @@ class PDFReportGenerator:
         }
         elements.append(Paragraph("Alert Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
         
         # Alerts table
         elements.append(Paragraph("Alert Details", self.styles['section']))
@@ -377,7 +377,7 @@ class PDFReportGenerator:
             }
         elements.append(Paragraph("Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
         
         # Activity table
         elements.append(Paragraph("Activity Log", self.styles['section']))
@@ -437,7 +437,7 @@ class PDFReportGenerator:
             }
         elements.append(Paragraph("Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3))
         
         # User table
         elements.append(Paragraph("User Details", self.styles['section']))

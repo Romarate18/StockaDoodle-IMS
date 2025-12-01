@@ -1,6 +1,7 @@
 from .base import BaseDocument
 from mongoengine import IntField, DateField, DateTimeField, StringField, ReferenceField
 from .user import User
+from .product import Product
 from datetime import datetime
 
 class StockBatch(BaseDocument):
@@ -11,7 +12,7 @@ class StockBatch(BaseDocument):
         }
 
     # product this batch belongs to
-    product_id = IntField(required=True)
+    product = ReferenceField(Product)
 
     # how many items inside this batch
     quantity = IntField(required=True, default=0)
