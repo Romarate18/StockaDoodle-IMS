@@ -1,23 +1,19 @@
 import os
 from flask import Flask, jsonify
-from flask_mongoengine import MongoEngine
+from mongoengine import connect
 from dotenv import load_dotenv
 
 load_dotenv()
-
-db = MongoEngine()
 
 def create_app():
     app = Flask(__name__)
     
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'stockadoodle-dev-2025')
-    app.config['MONGODB_SETTINGS'] = {
-        'db': os.getenv('DATABASE_NAME', 'stockadoodle'),
-        'host': os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-    }
+    connect (
+        db = os.getenv('DATABASE_NAME', 'stockadoodle'),
+        host = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+        )
     
-    db.init_app(app)
-
     # Import models AFTER init_app
     with app.app_context():
         from models import category, product, api_activity_log, product_log, retailer_metrics, sale, stock_batch, user
