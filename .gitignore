@@ -11,3 +11,7 @@ venv/
 
 .vscode/
 .idea/
+
+api_server/seeds.py
+
+*.db

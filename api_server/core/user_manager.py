@@ -157,7 +157,7 @@ class UserManager:
 
         # Check username uniqueness if changing
         if 'username' in kwargs and kwargs['username'] != user.username:
-            existing = User.query.filter_by(username=kwargs['username']).first()
+            existing = User.objects(username=kwargs['username']).first()
             if existing:
                 raise UserError(f"Username '{kwargs['username']}' already exists")
         
@@ -224,7 +224,7 @@ class UserManager:
         Raises:
             UserError: If verification fails
         """
-        user = User.objects(id=user_id).first
+        user = User.objects(id=user_id).first()
         if not user:
             raise UserError(f"User ID {user_id} not found")
 

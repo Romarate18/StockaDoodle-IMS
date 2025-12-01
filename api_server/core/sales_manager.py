@@ -1,6 +1,3 @@
-# api_server/core/sales_manager.py
-
-from extensions import db
 from models.sale import Sale, SaleItem
 from models.product import Product
 from models.retailer_metrics import RetailerMetrics
@@ -42,7 +39,7 @@ class SalesManager:
         try:
             # Phase 1: Validate all items first (prevents partial deductions)
             for item in items:
-                product = Product.query.get(item['product_id'])
+                product = Product.objects(id=item['product_id']).first()
                 if not product:
                     raise SalesError(f"Product ID {item['product_id']} not found")
                 
@@ -63,8 +60,7 @@ class SalesManager:
                 total_amount=total_amount,
                 created_at=datetime.now(timezone.utc)
             )
-            db.session.add(sale)
-            db.session.flush()  # Get sale ID
+            sale.save()
 
             # Phase 4: Create sale items
             for item in items:
@@ -74,28 +70,27 @@ class SalesManager:
                     quantity=item['quantity'],
                     line_total=item['line_total']
                 )
-                db.session.add(sale_item)
+                sale_item.save()
 
             # Phase 5: Update retailer metrics
             SalesManager._update_retailer_metrics(retailer_id, total_amount)
 
             # Phase 6: Log the transaction
-            product_names = [Product.query.get(item['product_id']).name for item in items]
+            product_names = [
+                Product.objects(id=item['product_id']).first().name 
+                for item in items
+                ]
             ActivityLogger.log_api_activity(
                 method='POST',
                 target_entity='sale',
                 user_id=retailer_id,
                 details=f"Sale ID {sale.id}: {len(items)} items ({', '.join(product_names)}), total ${total_amount:.2f}"
             )
-
-            db.session.commit()
             return sale
 
         except (InventoryError, SalesError) as e:
-            db.session.rollback()
             raise
         except Exception as e:
-            db.session.rollback()
             raise SalesError(f"Failed to complete sale: {str(e)}")
 
     @staticmethod
@@ -108,18 +103,17 @@ class SalesManager:
             retailer_id (int): Retailer ID
             sale_amount (float): Amount of the sale
         """
-        metrics = RetailerMetrics.query.filter_by(retailer_id=retailer_id).first()
+        metrics = RetailerMetrics.objects(retailer=retailer_id).first()
         
         if not metrics:
             # Create new metrics record
             metrics = RetailerMetrics(
                 retailer_id=retailer_id,
-                daily_quota=500.0,  # Default quota
+                daily_quota=1000.0,  # Default quota
                 sales_today=0.0,
                 total_sales=0.0,
                 total_transactions=0
             )
-            db.session.add(metrics)
 
         today = date.today()
         
@@ -143,6 +137,9 @@ class SalesManager:
         # Check if quota met today (for streak tracking)
         if metrics.sales_today >= metrics.daily_quota and metrics.current_streak == 0:
             metrics.current_streak = 1
+        
+        metrics.save()
+
 
     @staticmethod
     def undo_sale(sale_id, user_id):
@@ -159,7 +156,7 @@ class SalesManager:
         Raises:
             SalesError: If sale not found or cannot be undone
         """
-        sale = Sale.query.get(sale_id)
+        sale = Sale.objects(id=sale_id).first()
         if not sale:
             raise SalesError(f"Sale ID {sale_id} not found")
 
@@ -173,7 +170,7 @@ class SalesManager:
                 )
 
             # Adjust retailer metrics
-            metrics = RetailerMetrics.query.filter_by(retailer_id=sale.retailer_id).first()
+            metrics = RetailerMetrics.objects(retailer=sale.retailer_id).first()
             if metrics:
                 metrics.sales_today = max(0, metrics.sales_today - sale.total_amount)
                 metrics.total_sales = max(0, metrics.total_sales - sale.total_amount)
@@ -188,12 +185,10 @@ class SalesManager:
             )
 
             # Delete sale
-            db.session.delete(sale)
-            db.session.commit()
+            sale.delete()
             return True
 
         except Exception as e:
-            db.session.rollback()
             raise SalesError(f"Failed to undo sale: {str(e)}")
 
     @staticmethod
@@ -207,7 +202,7 @@ class SalesManager:
         Returns:
             Sale: Sale object or None
         """
-        return Sale.query.get(sale_id)
+        return Sale.objects(id=sale_id).first()
 
     @staticmethod
     def get_sales_report(start_date=None, end_date=None, retailer_id=None):
@@ -222,31 +217,31 @@ class SalesManager:
         Returns:
             dict: Report data with sales list and summary
         """
-        query = Sale.query
+        query = Sale.objects()
         
         if start_date:
             query = query.filter(Sale.created_at >= start_date)
         if end_date:
             query = query.filter(Sale.created_at <= end_date)
         if retailer_id:
-            query = query.filter_by(retailer_id=retailer_id)
+            query = query.filter_by(retailer=retailer_id)
 
-        sales = query.order_by(Sale.created_at.desc()).all()
+        sales = query.order_by('-created_at')
         
         total_revenue = sum(s.total_amount for s in sales)
         total_transactions = len(sales)
         
         # Calculate total items sold
-        total_items = sum(
-            sum(item.quantity for item in sale.items)
-            for sale in sales
-        )
+        total_items = 0
+        for sale in sales:
+            items = SaleItem.objects(sale=sale.id)
+            total_items += sum(item.quantity for item in items)
 
         return {
-            'sales': [s.to_dict(include_items=True) for s in sales],
+            'sales': [sale.to_dict(include_items=True) for sale in sales],
             'summary': {
                 'total_revenue': round(total_revenue, 2),
-                'total_transactions': total_transactions,
+                'total_transactions': sales.count(),
                 'total_items_sold': total_items,
                 'start_date': start_date.isoformat() if start_date else None,
                 'end_date': end_date.isoformat() if end_date else None,
@@ -265,13 +260,13 @@ class SalesManager:
         Returns:
             dict: Retailer performance data
         """
-        metrics = RetailerMetrics.query.filter_by(retailer_id=retailer_id).first()
+        metrics = RetailerMetrics.objects(retailer=retailer_id).first()
         
         if not metrics:
             return {
                 'retailer_id': retailer_id,
                 'current_streak': 0,
-                'daily_quota': 500.0,
+                'daily_quota': 1000.0,
                 'sales_today': 0.0,
                 'total_sales': 0.0,
                 'total_transactions': 0,
@@ -306,18 +301,14 @@ class SalesManager:
         from models.user import User
         
         top_metrics = (
-            RetailerMetrics.query
-            .order_by(
-                RetailerMetrics.current_streak.desc(),
-                RetailerMetrics.total_sales.desc()
-            )
+            RetailerMetrics.objects()
+            .order_by('-current_streak', '-total_sales')
             .limit(limit)
-            .all()
         )
 
         leaderboard = []
         for idx, metrics in enumerate(top_metrics, 1):
-            user = User.query.get(metrics.retailer_id)
+            user = User.objects(id=metrics.retailer).first()
             leaderboard.append({
                 'rank': idx,
                 'retailer_id': metrics.retailer_id,
@@ -348,14 +339,14 @@ class SalesManager:
         if new_quota < 0:
             raise SalesError("Quota must be non-negative")
         
-        metrics = RetailerMetrics.query.filter_by(retailer_id=retailer_id).first()
+        metrics = RetailerMetrics.objects(retailer=retailer_id).first()
         
         if not metrics:
             raise SalesError(f"Retailer ID {retailer_id} not found")
         
         old_quota = metrics.daily_quota
         metrics.daily_quota = new_quota
-        db.session.commit()
+        metrics.save()
         
         # Log quota change
         ActivityLogger.log_api_activity(
@@ -376,7 +367,7 @@ class SalesManager:
         Returns:
             int: Number of retailers processed
         """
-        all_metrics = RetailerMetrics.query.all()
+        all_metrics = RetailerMetrics.objects()
         today = date.today()
         yesterday = today - timedelta(days=1)
         
@@ -395,7 +386,7 @@ class SalesManager:
             
             # Reset daily sales
             metrics.sales_today = 0.0
+            metrics.save()
             updated_count += 1
         
-        db.session.commit()
         return updated_count

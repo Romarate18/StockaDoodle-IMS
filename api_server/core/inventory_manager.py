@@ -1,4 +1,3 @@
-from extensions import db
 from models.product import Product
 from models.stock_batch import StockBatch
 
@@ -19,7 +18,7 @@ class InventoryManager:
     @staticmethod
     def get_stock(product_id: int) -> int:
         """Return total available stock for a product by summing all batches."""
-        product = Product.query.get(product_id)
+        product = Product.objects(id=product_id).first()
         if not product:
             raise InventoryError("Product not found")
         return product.stock_level
@@ -30,7 +29,7 @@ class InventoryManager:
     @staticmethod
     def validate_stock(product_id: int, qty_needed: int) -> bool:
         """Raise InventoryError if stock is insufficient."""
-        product = Product.query.get(product_id)
+        product = Product.objects(id=product_id).first()
         if not product:
             raise InventoryError("Product not found")
 
@@ -50,19 +49,14 @@ class InventoryManager:
         Deduct stock from batches based on earliest expiration date first.
         Batches with NULL expiration are deducted last.
         """
-        product = Product.query.get(product_id)
+        product = Product.objects(id=product_id).first()
         if not product:
             raise InventoryError("Product not found")
 
         # Sort batches: earliest expiration first, NULLs last, then oldest added first
         batches = (
-            StockBatch.query
-            .filter_by(product_id=product_id)
-            .order_by(
-                StockBatch.expiration_date.asc().nullslast(),
-                StockBatch.added_at.asc()
-            )
-            .all()
+            StockBatch.objects(product=product_id)
+            .order_by("expiration_date", "added_at")
         )
 
         remaining = qty_needed
@@ -82,7 +76,7 @@ class InventoryManager:
                 f"FEFO deduction failed — insufficient stock for product '{product.name}'"
             )
 
-        db.session.commit()
+        batch.save()
         return True
 
     # --------------------------------------------------------------

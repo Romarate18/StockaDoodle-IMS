@@ -44,6 +44,22 @@ def create_app():
     # Register blueprint
     from routes.users import bp as users_bp
     app.register_blueprint(users_bp, url_prefix='/api/v1/users')
+    
+    # Dashboard blueprint
+    from routes.dashboard import bp as dashboard_bp
+    app.register_blueprint(dashboard_bp, url_prefix='/api/v1/dashboard')
+    
+    # Metrics blueprint
+    from routes.metrics import bp as metrics_bp
+    app.register_blueprint(metrics_bp, url_prefix='/api/v1/retailer')
+    
+    # Reports blueprint
+    from routes.reports import bp as reports_bp
+    app.register_blueprint(reports_bp, url_prefix='/api/v1/reports')
+    
+    # Notifications blueprint
+    from routes.notifications import bp as notifications_bp
+    app.register_blueprint(notifications_bp, url_prefix='/api/v1/notifications')
 
     @app.route('/api/v1')
     def home():

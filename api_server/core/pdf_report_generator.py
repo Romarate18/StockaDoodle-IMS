@@ -154,15 +154,15 @@ class PDFReportGenerator:
         date_range = f"Report Period: {report_data['date_range']['start']} to {report_data['date_range']['end']}"
         
          # Report title
-        self._add_report_title(elements, "Sales Performance Report", f"Report PeriodL {date_range}")
+        self._add_report_title(elements, "Sales Performance Report", f"Report Period: {date_range}")
         
         # Summary section
         elements.append(Paragraph("Summary", self.styles['section']))
         
         summary_data = {
-            'Total Revenue', f"${report_data['summary']['total_income']:,.2f}",
-            'Total Quantity Sold', f"{report_data['summary']['total_quantity_sold']:,}",
-            'Total Transactions', f"{report_data['summary']['total_transactions']:,}"
+            'Total Revenue': f"${report_data['summary']['total_income']:,.2f}",
+            'Total Quantity Sold': f"{report_data['summary']['total_quantity_sold']:,}",
+            'Total Transactions': f"{report_data['summary']['total_transactions']:,}"
         }
         
         summary_table = self._create_summary_box(summary_data)
@@ -377,7 +377,7 @@ class PDFReportGenerator:
             }
         elements.append(Paragraph("Summary", self.styles['section']))
         elements.append(self._create_summary_box(summary_text))
-        elements.append(PDFLayoutHelpers (0.3*inch))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
         
         # Activity table
         elements.append(Paragraph("Activity Log", self.styles['section']))
@@ -436,8 +436,8 @@ class PDFReportGenerator:
             'Retailers': str(summary['retailers'])
             }
         elements.append(Paragraph("Summary", self.styles['section']))
-        elements.append(self._create_summary_box(summary_text)))
-        elements.append(PDFLayoutHelpers(0.3*inch))
+        elements.append(self._create_summary_box(summary_text))
+        elements.append(PDFLayoutHelpers.create_spacer(0.3*inch))
         
         # User table
         elements.append(Paragraph("User Details", self.styles['section']))
