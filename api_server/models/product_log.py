@@ -1,21 +1,39 @@
-from extensions import db
-from datetime import datetime
+from .base import BaseDocument
+from mongoengine import IntField, StringField, DateTimeField, ReferenceField
+from .user import User
+from datetime import datetime, timezone
 
-class ProductLog(db.Model):
-    __tablename__ = 'product_logs'
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+class ProductLog(BaseDocument):
+    meta = {
+        'collection': 'product_logs',
+        'ordering': ['-log_time'],
+        'indexes': ['product_id', '-log_time']
+    }
 
-    action_type = db.Column(db.String(50), nullable=False)
-    notes = db.Column(db.Text, nullable=True)
-    log_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # product related to the log
+    product_id = IntField(required=True)
+
+    # user who performed the action
+    user = ReferenceField(User)
+
+    # type of action performed
+    action_type = StringField(max_length=50, required=True)
+
+    # optional notes about the action
+    notes = StringField()
+
+    # timestamp when the log was created
+    log_time = DateTimeField(
+        default=lambda: datetime.now(timezone.utc),
+        required=True
+    )
 
     def to_dict(self):
         return {
             'id': self.id,
             'product_id': self.product_id,
-            'user_id': self.user_id,
+            'user_id': self.user.id if self.user else None,
+            'user_name': self.user.full_name if self.user else "System",
             'action_type': self.action_type,
             'notes': self.notes,
             'log_time': self.log_time.isoformat()

@@ -1,35 +1,60 @@
-from extensions import db
-import base64
+from .base import BaseDocument
+from mongoengine import StringField, IntField
 
-class Product(db.Model):
-    __tablename__ = 'products'
+class Product(BaseDocument):
+    meta = {
+        'collection': 'products',
+        'ordering': ['name'],
+        'indexes': ['category_id', 'price']
+        }
     
-    id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(120), nullable = False)
-    brand = db.Column(db.String(50))
-    price = db.Column(db.Integer, nullable = False)
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-    stock_level = db.Column(db.Integer, default = 0)
-    min_stock_level = db.Column (db.Integer, default = 10)
-    expiration_date = db.Column(db.Date)
-    image_blob = db.Column(db.LargeBinary)
+    # name of the product, must be unique
+    name = StringField(max_length=120, unique=True, required=True)
+
+    # simple brand text
+    brand = StringField(max_length=50)
+
+    # price as whole number
+    price = IntField(required=True)
+
+    # link to a category
+    category_id = IntField(required=True)
     
+    # lowest allowed stock before warning
+    min_stock_level = IntField(default=10)
+
+    # this stores the product picture
+    product_image = StringField()
     
-    def to_dict(self, include_image = False):
+    # longer description of the product, optional
+    details = StringField(max_length=250)
+
+    @property
+    def stock_level(self):
+        from .stock_batch import StockBatch
+        # this adds all batch quantities together
+        return sum((batch.quantity or 0) for batch in StockBatch.objects(product_id=self.id))
+
+    def to_dict(self, include_image=False, include_batches=False):
         data = {
             "id": self.id,
             "name": self.name,
             "brand": self.brand or "",
             "price": self.price,
-            "category_id": self.category_id,
+            "category": self.category.name if self.category else None,
             "stock_level": self.stock_level,
             "min_stock_level": self.min_stock_level,
-            "expiration_date": self.expiration_date.isoformat() if self.expiration_date else None
+            "details": self.details or "",
+            "has_image": bool(self.product_image)
         }
-        if include_image and self.image_blob:
-            data["image_base64"] = base64.b64encode(self.image_blob).decode('utf-8')
+
+        if include_image and self.product_image:
+            # send image as base64 string if needed
+            data["image_base64"] = self.product_image
+
+        if include_batches:
+            from .stock_batch import StockBatch
+            # include the list of all stock batches
+            data["batches"] = [batch.to_dict() for batch in StockBatch.objects(product_id=self.id)]
+
         return data
-    
-    
-    
-    
