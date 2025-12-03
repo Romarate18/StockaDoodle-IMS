@@ -129,9 +129,8 @@ class StockaDoodleAPI:
             "role": role  
         }  
           
-        if user_image:  
-            import base64  
-            data['image_base64'] = base64.b64encode(user_image).decode('utf-8')  
+        if user_image:
+            data['image_data'] = user_image
           
         return self._request("POST", "/users", json=data)  
       
@@ -174,9 +173,8 @@ class StockaDoodleAPI:
             "description": description  
         }  
           
-        if category_image:  
-            import base64  
-            data['image_base64'] = base64.b64encode(category_image).decode('utf-8')  
+        if category_image:
+            data['image_data'] = category_image
           
         return self._request("POST", "/categories", json=data)  
       
@@ -241,9 +239,8 @@ class StockaDoodleAPI:
         # Remove None values  
         data = {k: v for k, v in data.items() if v is not None}  
           
-        if product_image:  
-            import base64  
-            data['image_base64'] = base64.b64encode(product_image).decode('utf-8')  
+        if product_image:
+            data['image_data'] = product_image
           
         return self._request("POST", "/products", json=data)  
       

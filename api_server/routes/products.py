@@ -10,7 +10,7 @@ from mongoengine.errors import DoesNotExist
 
 
 
-from utils import get_image_blob, extract_int, parse_date
+from utils import get_image_binary, extract_int, parse_date
 from datetime import datetime, timezone
 
 bp = Blueprint('products', __name__)
@@ -172,7 +172,7 @@ def create_product():
             return jsonify({"errors": ["Invalid category ID"]}), 400
 
     # Handle product image
-    image_blob = get_image_blob()
+    image_blob = get_image_binary()
 
     # Create product
     product = Product(
@@ -345,7 +345,7 @@ def replace_product(product_id):
         batch.save()
         
     # Image handling
-    new_image = get_image_blob()
+    new_image = get_image_binary()
     if new_image is not None:
         product.product_image = new_image
 
@@ -434,7 +434,7 @@ def patch_product(product_id):
 
 
     # Image update (replace only if sent)
-    new_image = get_image_blob()
+    new_image = get_image_binary()
     if new_image is not None:
         product.product_image = new_image
         

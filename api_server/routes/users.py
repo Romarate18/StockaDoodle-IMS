@@ -3,7 +3,7 @@ from models.user import User
 from core.user_manager import UserManager, UserError
 from core.mfa_service import MFAService
 from core.activity_logger import ActivityLogger
-from utils import get_image_blob
+from utils import get_image_binary
 
 bp = Blueprint('users', __name__)
 
@@ -65,7 +65,7 @@ def create_user():
     role = data.get('role', 'staff')
     
     # Handle image
-    user_image = get_image_blob()
+    user_image = get_image_binary()
     
     try:
         user = UserManager.create_user(
@@ -114,7 +114,7 @@ def replace_user(user_id):
         return jsonify({"errors": ["username, full_name, role, and email are required for PUT"]}), 400
     
     # Handle image
-    user_image = get_image_blob()
+    user_image = get_image_binary()
     if user_image is not None:
         data['user_image'] = user_image
     
@@ -151,7 +151,7 @@ def update_user(user_id):
     data = request.form.to_dict() if is_form else (request.get_json() or {})
     
     # Handle image
-    user_image = get_image_blob()
+    user_image = get_image_binary()
     if user_image is not None:
         data['user_image'] = user_image
     

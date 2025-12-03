@@ -1,6 +1,5 @@
-from mongoengine import StringField
+from mongoengine import StringField, BinaryField
 from .base import BaseDocument
-import base64
 
 class Category(BaseDocument):
     meta = {
@@ -15,7 +14,7 @@ class Category(BaseDocument):
     description = StringField(max_length=255)
     
     # optional image for the category
-    category_image = StringField()
+    category_image = BinaryField()
      
     def to_dict(self, include_image=False):
         data = {
@@ -25,7 +24,7 @@ class Category(BaseDocument):
         }
         
         if include_image and self.category_image:
-            # convert image to base64 string for easy frontend use
-            data['image_base64'] = self.category_image
+            # return image as binary data
+            data['image_data'] = self.category_image
         
         return data

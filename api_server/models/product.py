@@ -1,5 +1,5 @@
 from .base import BaseDocument
-from mongoengine import StringField, IntField
+from mongoengine import StringField, IntField, BinaryField
 
 class Product(BaseDocument):
     meta = {
@@ -23,7 +23,7 @@ class Product(BaseDocument):
     min_stock_level = IntField(default=10)
 
     # this stores the product picture
-    product_image = StringField()
+    product_image = BinaryField()
     
     # longer description of the product, optional
     details = StringField(max_length=250)
@@ -53,8 +53,8 @@ class Product(BaseDocument):
         }
 
         if include_image and self.product_image:
-            # send image as base64 string if needed
-            data["image_base64"] = self.product_image
+            # send image as binary data
+            data["image_data"] = self.product_image
 
         if include_batches:
             from .stock_batch import StockBatch

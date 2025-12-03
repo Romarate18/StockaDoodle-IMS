@@ -14,11 +14,11 @@ def parse_date(value):
     return None
 
 
-def get_image_blob():
+def get_image_binary():
     """
-    Extract image from:
+    Extract image binary data from:
     - multipart/form-data → file upload (field name: 'image')
-    - JSON or form-data → base64 string (field name: 'image_base64')
+    - JSON or form-data → binary data (field name: 'image_data')
     Returns bytes or None
     """
     # 1. File upload
@@ -26,14 +26,18 @@ def get_image_blob():
         file = request.files["image"]
         return file.read()
 
-    # 2. Base64 from JSON or form
+    # 2. Binary data from JSON or form
     raw = (
-        request.form.get("image_base64") or
-        (request.get_json(silent=True) or {}).get("image_base64")
+        request.form.get("image_data") or
+        (request.get_json(silent=True) or {}).get("image_data")
     )
     if raw:
+        # If it's already bytes, return as-is
+        if isinstance(raw, bytes):
+            return raw
+        # If it's a string representation, try to decode
         try:
-            return base64.b64decode(raw)
+            return raw.encode('latin1') if isinstance(raw, str) else None
         except Exception:
             return None
     return None

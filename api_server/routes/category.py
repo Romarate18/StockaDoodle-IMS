@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.category import Category
 from core.activity_logger import ActivityLogger
-from utils import get_image_blob
+from utils import get_image_binary
 from mongoengine.errors import DoesNotExist
 
 bp = Blueprint('categories', __name__)
@@ -60,17 +60,13 @@ def create_category():
         return jsonify({"errors": ["Category name already exists"]}), 400
     
     # Handle image
-    image_blob = get_image_blob()
-    image_base64 = None
-    if image_blob:
-        import base64
-        image_base64 = base64.b64encode(image_blob).decode('utf-8')
+    image_blob = get_image_binary()
     
     try: 
         category = Category(
             name=name.strip(),
             description=data.get('description'),
-            category_image=image_base64
+            category_image=image_blob
         )
         category.save()
         
@@ -122,15 +118,11 @@ def replace_category(cat_id):
     category.description = data.get('description')
     
     # Handle image
-    new_image = get_image_blob()
-    image_base64 = None
-    if new_image:
-        import base64
-        image_base64 = base64.b64encode(new_image).decode('utf-8')
-        
-    try:    
-        if image_base64 is not None:
-            category.category_image = image_base64
+    new_image = get_image_binary()
+
+    try:
+        if new_image is not None:
+            category.category_image = new_image
 
         category.save()
     
@@ -185,10 +177,9 @@ def update_category(cat_id):
         category.description = data['description']
     
     # Handle image
-    new_image = get_image_blob()
+    new_image = get_image_binary()
     if new_image is not None:
-        import base64
-        category.category_image = base64.b64encode(new_image).decode('utf-8')
+        category.category_image = new_image
         changes.append("image updated")
     
     if not changes:

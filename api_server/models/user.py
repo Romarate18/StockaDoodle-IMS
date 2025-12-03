@@ -1,8 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
-from mongoengine import StringField, EmailField, BooleanField, DateTimeField
+from mongoengine import StringField, EmailField, BooleanField, DateTimeField, BinaryField
 from .base import BaseDocument
 from datetime import datetime, timezone
-import base64
 
 class User(BaseDocument):
     meta = {
@@ -26,7 +25,7 @@ class User(BaseDocument):
     password_hash = StringField(max_length=255, required=True)
 
     # optional profile picture
-    user_image = StringField()
+    user_image = BinaryField()
     
     # status of user (for system access)
     is_active = BooleanField(default=True)
@@ -53,7 +52,7 @@ class User(BaseDocument):
         }
 
         if include_image and self.user_image:
-            # return user image as base64 string
-            data["image_base64"] = self.user_image
+            # return user image as binary data
+            data["image_data"] = self.user_image
 
         return data
